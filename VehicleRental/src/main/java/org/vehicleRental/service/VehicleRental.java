@@ -1,9 +1,14 @@
 package org.vehicleRental.service;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.vehicleRental.dto.EndReservationParams;
 import org.vehicleRental.dto.NewReservationParams;
 import org.vehicleRental.dto.Result;
+import org.vehicleRental.dto.SearchReservationParams;
 import org.vehicleRental.enums.ReservationStatus;
 import org.vehicleRental.models.Reservation;
 import org.vehicleRental.models.Vehicle;
@@ -11,6 +16,8 @@ import org.vehicleRental.utils.HibernateUtil;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class VehicleRental {
     private static volatile VehicleRental instance;
@@ -24,7 +31,7 @@ public final class VehicleRental {
         return instance;
     }
 
-    public Result appointReservation(NewReservationParams params) {
+    public Result newReservation(NewReservationParams params) {
         Vehicle vehicle = new Vehicle();
 
         try (Session session = HibernateUtil.getSession()) {
@@ -57,7 +64,7 @@ public final class VehicleRental {
 
         if (reservation.getStatus() != ReservationStatus.RESERVED) return new Result(false, "Reservation has already finished");
 
-        String detail = new String();
+        String detail;
 
         if (reservation.getEndDate().isBefore(params.getReturnDate())) {
             long extraDays = ChronoUnit.DAYS.between(reservation.getEndDate(), params.getReturnDate());
@@ -68,7 +75,7 @@ public final class VehicleRental {
             detail = "Reservation ended, extra charges: " + extraCharges;
         }
         else {
-            detail = "Reservation already finished";
+            detail = "Reservation finished on time";
         }
 
         reservation.setStatus(ReservationStatus.COMPLETED);
@@ -80,5 +87,37 @@ public final class VehicleRental {
         }
 
         return new Result(true, detail);
+    }
+
+    public List<Reservation> searchReservation(SearchReservationParams params) {
+        try (Session session = HibernateUtil.getSession()) {
+            CriteriaBuilder builder = session.getCriteriaBuilder();
+            CriteriaQuery<Reservation> query = builder.createQuery(Reservation.class);
+            Root<Reservation> root = query.from(Reservation.class);
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(builder.equal(root.get("clientName"), params.getClientName()));
+
+            if (params.getStartDate() != null) {
+                predicates.add(builder.greaterThanOrEqualTo(root.get("startDate"), params.getStartDate()));
+            }
+
+            if (params.getEndDate() != null) {
+                predicates.add(builder.lessThanOrEqualTo(root.get("endDate"), params.getEndDate()));
+            }
+
+            if (params.getStatus() != null) {
+                predicates.add(builder.equal(root.get("status"), params.getStatus()));
+            }
+
+            if (params.getVehicleBrand() != null) {
+                predicates.add(builder.equal(root.get("vehicle").get("brand"), params.getVehicleBrand()));
+            }
+
+            query.where(predicates.toArray(new Predicate[predicates.size()]));
+
+            return session.createQuery(query).list();
+        }
     }
 }
