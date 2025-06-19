@@ -29,6 +29,13 @@ public class Vehicle {
 
     public Vehicle() {}
 
+    public Vehicle(String plateNumber, String brand, String model, BigDecimal dailyRate) {
+        this.plateNumber = plateNumber;
+        this.brand = brand;
+        this.model = model;
+        this.dailyRate = dailyRate;
+    }
+
     public long getId() {
         return id;
     }
@@ -51,5 +58,9 @@ public class Vehicle {
 
     public int getAvailable() {
         return available;
+    }
+
+    public void setAvailable(int available) {
+        this.available = available;
     }
 }

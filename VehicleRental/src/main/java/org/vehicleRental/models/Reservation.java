@@ -42,7 +42,8 @@ public class Reservation {
         this.vehicle = vehicle;
         this.startDate = startDate;
         this.endDate = endDate;
-        this.totalCost = getTotalCost();
+        this.status = ReservationStatus.RESERVED;
+        setTotalCost();
     }
 
     public long getId() {

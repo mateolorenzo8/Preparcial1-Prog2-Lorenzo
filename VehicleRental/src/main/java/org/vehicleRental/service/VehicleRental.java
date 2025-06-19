@@ -32,7 +32,7 @@ public final class VehicleRental {
     }
 
     public Result newReservation(NewReservationParams params) {
-        Vehicle vehicle = new Vehicle();
+        Vehicle vehicle;
 
         try (Session session = HibernateUtil.getSession()) {
             vehicle = session.get(Vehicle.class, params.getVehicleId());
@@ -43,14 +43,16 @@ public final class VehicleRental {
         if (vehicle.getAvailable() != 1) return new Result(false, "Vehicle is already taken");
 
         Reservation reservation = new Reservation(params.getClientName(), vehicle, params.getStartDate(), params.getEndDate());
+        vehicle.setAvailable(0);
 
         try (Session session = HibernateUtil.getSession()) {
             session.beginTransaction();
-            session.save(reservation);
+            session.persist(reservation);
+            session.merge(vehicle);
             session.getTransaction().commit();
         }
 
-        return new Result(true, "Vehicle appointed, total: " + reservation.getTotalCost());
+        return new Result(true, "Vehicle reserved");
     }
 
     public Result endReservation(EndReservationParams params) {
