@@ -118,6 +118,7 @@ public final class VehicleRental {
             }
 
             query.where(predicates.toArray(new Predicate[predicates.size()]));
+            query.orderBy(builder.desc(root.get("startDate")));
 
             return session.createQuery(query).list();
         }
